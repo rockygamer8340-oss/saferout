@@ -1,58 +1,107 @@
-# SafeRoute Guardian (prototype)
+# SafeRoute Guardian
 
-**Online lagana hai? [SETUP.md](SETUP.md) padho (Hinglish, step by step).**
+**Walk home, never alone.** SafeRoute watches the route a girl plans. If she leaves it, a guardian bot calls to check she is safe. If she does not answer, or says she is not safe, it alerts the police and her family.
 
-A phone and desktop web app (installable as a PWA) that watches a planned route and checks on the user when she leaves it.
+**Live:** https://saferout.onrender.com (website) · https://saferout.onrender.com/index.html (app)
 
-## What it does
+> Prototype. It runs in **demo mode** by default: alerts show inside the app and nothing is really sent. Real SMS and calls need a Twilio account ([SETUP.md](SETUP.md), Hinglish, step by step).
 
-1. **Plan a route.** Tap the map to set start and destination (or use your location). A walking route is drawn.
-2. **Leave the route → bot call.** When she is more than the set distance (default 150 m) off the route, the guardian bot rings. It asks “Are you safe?” by voice, and she can answer by voice, by button or (with the server) by pressing 1/2 on a real phone call.
-3. **Safe → reason → marked place → face check.** She says why she chose this place. It is marked on the map. Then the camera checks her face against the enrolled face before the trip continues on a new route.
-4. **Destination change** works the same way: bot call, reason, marked place, face check.
-5. **3 missed calls** → alert with a map link to the nearest police station (looked up from OpenStreetMap, fallback number 112) and all family contacts.
-6. **“I am not safe”** (or SOS button, or 3 failed face checks, or no reply for 60 s) → police and family are alerted. The camera opens full screen and cannot be closed until her face is recognised **and** she says (or types) “I am safe now”. Family get live location every 2 minutes during the emergency, and a “she is safe now” message when it ends. Reloading the page reopens the lock.
+---
 
-Face recognition runs fully on the phone with face-api.js. Only a 128-number face signature is stored, never a photo.
+## How it works
 
-## Run it
-
-```bash
-node server/server.js          # app: http://localhost:8080  website: http://localhost:8080/site/
-```
-
-Needs Node 18+. No npm install. Without Twilio settings it runs in **dry-run** mode and only prints messages. Camera, microphone and GPS need HTTPS (or localhost).
-
-## Making alerts real
-
-| What | What you need |
+| When | What SafeRoute does |
 |---|---|
-| SMS to family and police | A [Twilio](https://www.twilio.com) account with an SMS-capable number. Indian numbers need DLT registration for SMS. |
-| Real bot phone call | Same Twilio number with voice. The server must be on a public HTTPS address (`PUBLIC_URL`) so Twilio can reach its webhooks. |
-| Police | Police stations do not accept SMS from apps in general. For real use, integrate with the official ERSS 112 system (via the state/central government) or agree a number with local police. Until then the app sends to the police number set in Setup. |
+| She plans a trip | She taps her start and destination on the map. A walking route is drawn. |
+| She goes more than 150 m off the route | The guardian bot rings and asks by voice: “Are you safe?” |
+| She says she is safe | The bot asks why she chose this place and marks it on the map. Then the camera checks her face before the trip continues. |
+| She changes her destination | Same thing: bot call, reason, marked place, face check. |
+| She misses 3 calls | The nearest police station and her family get an SMS with her location on a map. |
+| She says “I am not safe”, or presses **SOS** | Police and family are alerted at once. The camera opens and **cannot be closed** until it recognises her face **and** she says “I am safe now”. |
+| During an emergency | Family get her live location every 2 minutes, and a “she is safe now” message when it ends. |
 
-Start the server with:
+Other safety rules: 3 failed face checks, or no reply for 60 seconds after picking up, also count as an emergency. Reloading the page does not close the emergency camera.
 
-```bash
-TWILIO_ACCOUNT_SID=AC... TWILIO_AUTH_TOKEN=... TWILIO_FROM=+1... \
-PUBLIC_URL=https://your-server.example.com APP_KEY=long-random-secret \
-node server/server.js
+## Privacy
+
+- Face recognition runs **on the phone** (face-api.js). The app keeps a list of 128 numbers that describe the face, never a photo.
+- Routes, marked places and contacts stay in the phone's browser storage.
+- Location leaves the phone only inside an alert.
+
+## Features
+
+- Map with route planning (Leaflet + OpenStreetMap, walking routes from OSRM)
+- Leave-route and destination-change detection
+- In-app guardian bot call with ringtone, vibration, voice questions and voice answers (English and Hindi words such as “bachao”, “madad”)
+- Optional real phone call through Twilio (press 1 = safe, 2 = not safe)
+- Face enrolment and face check (camera, or a selfie photo as a fallback)
+- Emergency lock screen with face + “I am safe now” unlock
+- Nearest police station lookup (OpenStreetMap), fallback number 112
+- SOS button always on screen
+- Simulated walk for demos and testing
+- Installable on the home screen (PWA), dark design matching the website
+
+## Project structure
+
+```
+site/index.html          Website (landing page)
+index.html               App
+styles.css, app.js       App style and logic
+vendor/                  Leaflet 1.9.4, face-api 1.7.15 (MIT)
+models/                  Face detection and recognition weights
+server/server.js         Web server + Twilio SMS and call API (no npm packages)
+render.yaml              Render blueprint
+netlify.toml             Netlify demo hosting (no real alerts)
+manifest.webmanifest, sw.js, icon.svg   Home-screen install and offline shell
+SETUP.md                 Hosting and Twilio guide in Hinglish
 ```
 
-Then in the app: **Setup → Sending real alerts → Real, through my SafeRoute server**, enter the server address and the same `APP_KEY`, and tick “Also ring my real phone” for real calls.
+## Run on your computer
 
-## Known limits of this prototype
+Needs Node 18 or newer. No `npm install` needed.
 
-- A web page cannot run in the background on a phone. When the browser is closed or the screen is locked for long, tracking stops. A real product needs a native app (Android/iOS) with background location.
-- Face check has no liveness test, so a photo of her could fool it. Add a blink/turn-head check before real use.
-- Voice recognition works in Chrome/Edge and Android; elsewhere she types “I am safe now”.
-- Map tiles, routing and police lookup use free OpenStreetMap services (tile.openstreetmap.org, OSRM demo, Overpass). They are fine for testing but need your own or paid providers for many users.
+```bash
+npm start
+# website: http://localhost:8080
+# app:     http://localhost:8080/index.html
+```
 
-## Files
+Camera, microphone and GPS need HTTPS or localhost.
 
-- `site/index.html`: the website (one self-contained file, dark cinematic style, hero video). Its buttons open the app at `../index.html`, so host the whole folder together.
-- `index.html`, `styles.css`, `app.js`: the app
-- `vendor/`: Leaflet 1.9.4 and face-api 1.7.15 (MIT licences included)
-- `models/`: face detection and recognition weights
-- `server/server.js`: static server + Twilio SMS/call API
-- `manifest.webmanifest`, `sw.js`, `icon.svg`: install to home screen, offline shell
+## Hosting (Render)
+
+This repo is deployed on Render as a **Web Service**:
+
+- Build command: `npm install`
+- Start command: `npm start`
+- Every push to `main` redeploys it automatically.
+
+Without Twilio settings the server runs in **dry-run** mode and only prints messages to the log.
+
+## Turning on real SMS and calls
+
+Add these in Render → your service → **Environment**:
+
+| Variable | Value |
+|---|---|
+| `TWILIO_ACCOUNT_SID` | From the Twilio console (starts with `AC`) |
+| `TWILIO_AUTH_TOKEN` | From the Twilio console |
+| `TWILIO_FROM` | Your Twilio number, like `+15551234567` |
+| `APP_KEY` | Any long secret password you make up. **Required** once Twilio is set, or the server will not start. |
+
+Then in the app: **Setup → Sending real alerts → “Real, through my SafeRoute server”**, leave the server address blank, and paste the same `APP_KEY`.
+
+Twilio trial accounts can only send to numbers you verify in Twilio. See [SETUP.md](SETUP.md) for the full steps.
+
+## Known limits
+
+- **Police:** police stations do not accept SMS from apps in general. Real police alerts need an agreement with local police or the **112 ERSS** system. Until then alerts go to the police number set in the app (default 112).
+- **Background tracking:** a web app stops tracking when the phone stays locked for long. A native Android/iOS app is needed for that.
+- **Face check** has no liveness test yet, so a photo could fool it.
+- **Render free plan** sleeps after 15 minutes idle, so the first request can take up to a minute. Use a paid plan for real use.
+- Voice answers work in Chrome/Edge and on Android. Elsewhere she can tap or type.
+- Map tiles, routing and police lookup use free OpenStreetMap services, which are fine for testing but not for many users.
+
+## Credits
+
+Built with [Leaflet](https://leafletjs.com), [face-api.js](https://github.com/vladmandic/face-api), [OpenStreetMap](https://www.openstreetmap.org) and [Twilio](https://www.twilio.com).

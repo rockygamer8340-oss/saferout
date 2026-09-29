@@ -40,25 +40,26 @@ Tumhe 3 account banane honge. Ye kaam sirf tum kar sakte ho (mobile number, emai
    - Free trial mein SMS/call sirf un numbers par jata hai jo tumne Twilio mein **verify** kiye hain (Phone Numbers → Verified Caller IDs). Family ke number wahan add karo.
    - Asli use ke liye account **upgrade** (paisa daalna) padega. India mein SMS ke liye DLT registration bhi lagta hai.
 
-### Step C: Render par server chalao
-1. **https://render.com** par GitHub se login karo.
-2. **New → Blueprint** dabao, apni `saferoute` repository chuno. Render khud `render.yaml` padh lega.
-3. Wo 3 cheezein maangega. Twilio wali daal do:
+### Step C: Render par Twilio ki details daalo
+Tumhari app pehle se Render par live hai: **https://saferout.onrender.com**
+1. **dashboard.render.com** kholo aur **saferout** service par click karo.
+2. Left side mein **Environment** dabao.
+3. **Add Environment Variable** dabakar ye 4 cheezein daalo:
    - `TWILIO_ACCOUNT_SID` = Account SID
    - `TWILIO_AUTH_TOKEN` = Auth Token
    - `TWILIO_FROM` = Twilio number (jaise `+15551234567`, bina space)
-4. **Apply / Deploy** dabao. 2-3 minute mein link milega, jaise `https://saferoute.onrender.com`.
-5. Render mein service kholo → **Environment** → `APP_KEY` ki value copy karo (ye password jaisa hai).
+   - `APP_KEY` = koi bhi lamba password jo tum khud banao (yaad rakhna, app mein daalna hoga)
+4. **Save Changes** dabao. Render khud dobara deploy karega (2-3 minute).
 
 ### Step D: App mein on karo
-1. Render wala link phone par kholo → "Open the App".
+1. **https://saferout.onrender.com** phone par kholo → "Open the App".
 2. **Setup** tab mein:
    - Apna naam aur **apna phone number** (`+91` ke saath)
    - **Family contacts** ke naam aur number (`+91` ke saath)
    - **Enroll with camera** dabakar apna face register karo
    - **Mode** → "Real, through my SafeRoute server"
    - **Server address** khali chhod do
-   - **Server key** mein `APP_KEY` paste karo
+   - **Server key** mein wahi `APP_KEY` password daalo
    - Asli phone call chahiye to "Also ring my real phone" tick karo
    - **Save**
 3. Test: SOS dabao. Family ke phone par SMS aana chahiye. Phir camera ke saamne face dikhao aur "I am safe now" bolo/likho.
