@@ -1,0 +1,9 @@
+# Demo hosting on Netlify (no real SMS/calls: the server part does not run here).
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/"
+  to = "/site/index.html"
+  status = 200
+  force = true

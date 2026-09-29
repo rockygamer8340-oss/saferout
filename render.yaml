@@ -1,0 +1,18 @@
+# One-click setup on Render (render.com): New → Blueprint → pick this repository.
+services:
+  - type: web
+    name: saferoute
+    runtime: node
+    plan: free            # free plan sleeps when idle; use "starter" for real use
+    buildCommand: echo "no build needed"
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: APP_KEY
+        generateValue: true   # Render makes a random secret; copy it into the app's Setup screen
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM
+        sync: false

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050505">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+<!--ARTIFACT-START-->
+<title>SafeRoute Guardian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap">
+<!--HEAD-END-->
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 31.5 48.5" aria-hidden="true"><defs><linearGradient id="bg1" x1="8" y1="0" x2="34.1" y2="28.9" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#9e9e9e"/><stop offset=".28" stop-color="#a6a6a6"/><stop offset=".34" stop-color="#a3a3a3"/><stop offset=".40" stop-color="#3a3a3a"/><stop offset=".55" stop-color="#414141"/><stop offset=".60" stop-color="#7a7a7a"/><stop offset=".68" stop-color="#8e8e8e"/><stop offset=".80" stop-color="#a9a9a9"/><stop offset=".95" stop-color="#c4c4c4"/><stop offset="1" stop-color="#cccccc"/></linearGradient></defs><path d="M21.5 0 L21.5 19.5 L31.5 19.5 L31.5 29 L10 48.5 L10 28.5 L0.5 28.5 L0.5 18.5 Z" fill="url(#bg1)"/><rect x="0.5" y="18.5" width="9" height="10" fill="#fdfdfd"/><rect x="22" y="19.5" width="9.5" height="9.5" fill="#fdfdfd"/></svg>
+      <div>
+        <div class="brand-name">SafeRoute</div>
+        <div class="brand-sub">Guardian bot</div>
+      </div>
+    </div>
+    <span class="pill" id="statusPill" data-tone="idle">No trip</span>
+  </header>
+
+  <div class="layout">
+    <section class="map-wrap">
+      <div id="map" aria-label="Route map"></div>
+      <div class="map-hint" id="mapHint" hidden></div>
+      <div class="sim-bar" id="simBar" hidden>
+        <span class="sim-label">Simulated walk</span>
+        <button class="btn sm" id="simPause" type="button">Pause</button>
+        <button class="btn sm" id="simOff" type="button">Step off route</button>
+        <button class="btn sm" id="simBack" type="button">Back on route</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <nav class="tabs" role="tablist">
+        <button role="tab" class="tab" data-tab="trip" aria-selected="true" type="button">Trip</button>
+        <button role="tab" class="tab" data-tab="log" aria-selected="false" type="button">Places &amp; alerts</button>
+        <button role="tab" class="tab" data-tab="setup" aria-selected="false" type="button">Setup</button>
+      </nav>
+
+      <!-- TRIP -->
+      <div class="view" data-view="trip">
+        <div class="demo-note" id="demoNote">Example route loaded (Connaught Place to India Gate, New Delhi). Tap <b>Set start</b> or <b>Set destination</b> and then the map to plan your own.</div>
+        <div class="route-card">
+          <div class="stop">
+            <span class="dot start"></span>
+            <div class="stop-body">
+              <div class="label">From</div>
+              <div class="value" id="startText">Not set</div>
+            </div>
+            <button class="btn ghost sm" id="pickStart" type="button">Set start</button>
+          </div>
+          <div class="stop">
+            <span class="dot dest"></span>
+            <div class="stop-body">
+              <div class="label">To</div>
+              <div class="value" id="destText">Not set</div>
+            </div>
+            <button class="btn ghost sm" id="pickDest" type="button">Set destination</button>
+          </div>
+          <div class="route-meta" id="routeMeta"></div>
+        </div>
+
+        <div class="row">
+          <button class="btn ghost" id="useMyLoc" type="button">Start from my location</button>
+          <label class="check"><input type="checkbox" id="simMode" checked> Simulate walking (demo)</label>
+        </div>
+
+        <div class="row">
+          <button class="btn primary grow" id="startTrip" type="button">Start trip</button>
+          <button class="btn grow" id="changeDest" type="button" disabled>Change destination</button>
+          <button class="btn ghost grow" id="endTrip" type="button" disabled>End trip</button>
+        </div>
+
+        <div class="live" id="live" hidden>
+          <div class="live-grid">
+            <div><div class="label">Off route by</div><div class="num" id="offBy">0 m</div></div>
+            <div><div class="label">Allowed</div><div class="num" id="allowed">150 m</div></div>
+            <div><div class="label">To destination</div><div class="num" id="toDest">–</div></div>
+          </div>
+          <div class="meter"><div class="meter-fill" id="offMeter"></div></div>
+        </div>
+
+        <details class="how">
+          <summary>What happens if I leave my route?</summary>
+          <ol>
+            <li>The guardian bot calls you and asks if you are safe.</li>
+            <li>If you are safe, you say why you chose this place. It is marked on your map.</li>
+            <li>Then the bot checks your face before the trip continues.</li>
+            <li>If you miss 3 calls, the nearest police station and your family get an alert with your location.</li>
+            <li>If you say you are not safe, police and family are alerted and the camera opens. It closes only when it sees your face and hears “I am safe now”.</li>
+          </ol>
+        </details>
+      </div>
+
+      <!-- LOG -->
+      <div class="view" data-view="log" hidden>
+        <h2 class="h">Marked places</h2>
+        <ul class="list" id="placesList"></ul>
+        <h2 class="h">Alerts sent</h2>
+        <p class="muted small" id="outboxNote">Demo mode: messages are shown here and are not really sent.</p>
+        <ul class="list" id="outboxList"></ul>
+        <h2 class="h">Activity</h2>
+        <ul class="list compact" id="logList"></ul>
+        <button class="btn ghost sm" id="clearLog" type="button">Clear history</button>
+      </div>
+
+      <!-- SETUP -->
+      <div class="view" data-view="setup" hidden>
+        <form id="setupForm" class="form" autocomplete="off">
+          <h2 class="h">You</h2>
+          <label class="field"><span>Your name</span><input id="fName" type="text" placeholder="Your name"></label>
+          <label class="field"><span>Your phone (bot calls this)</span><input id="fPhone" type="tel" placeholder="+91 98xxxxxxx"></label>
+
+          <h2 class="h">Your face</h2>
+          <div class="face-card">
+            <div class="face-status" id="faceStatus">Not enrolled</div>
+            <div class="row">
+              <button class="btn" id="enrollFace" type="button">Enroll with camera</button>
+              <label class="btn ghost file-btn">Use a selfie photo<input type="file" id="enrollPhoto" accept="image/*" capture="user"></label>
+            </div>
+            <p class="muted small">Your face data stays on this phone. It is a list of 128 numbers, not a photo.</p>
+          </div>
+
+          <h2 class="h">Family contacts</h2>
+          <div id="contacts"></div>
+          <button class="btn ghost sm" id="addContact" type="button">Add contact</button>
+
+          <h2 class="h">Police</h2>
+          <label class="field"><span>Fallback police number</span><input id="fPolice" type="tel" placeholder="112"></label>
+          <p class="muted small">The app looks up the nearest police station from the map. If it cannot, it uses this number.</p>
+
+          <h2 class="h">Bot call</h2>
+          <div class="grid2">
+            <label class="field"><span>Leave-route distance (m)</span><input id="fThreshold" type="number" min="30" max="2000" step="10"></label>
+            <label class="field"><span>Ring time per call (s)</span><input id="fRing" type="number" min="5" max="60"></label>
+            <label class="field"><span>Gap between calls (s)</span><input id="fGap" type="number" min="2" max="120"></label>
+            <label class="field"><span>Calls before alert</span><input id="fTries" type="number" min="1" max="5"></label>
+          </div>
+
+          <h2 class="h">Sending real alerts</h2>
+          <label class="field"><span>Mode</span>
+            <select id="fMode">
+              <option value="simulated">Demo (nothing is sent)</option>
+              <option value="server">Real, through my SafeRoute server</option>
+            </select>
+          </label>
+          <label class="field"><span>Server address</span><input id="fServer" type="url" placeholder="Leave blank if this app is on your SafeRoute server"></label>
+          <label class="field"><span>Server key (APP_KEY)</span><input id="fKey" type="password" placeholder="Same secret as on the server"></label>
+          <label class="check"><input type="checkbox" id="fRealCall"> Also ring my real phone for bot calls (server mode)</label>
+          <div class="row">
+            <button class="btn primary" type="submit">Save</button>
+            <span class="muted small" id="savedMsg" aria-live="polite"></span>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <button class="sos" id="sosBtn" type="button" aria-label="Emergency SOS">SOS</button>
+</div>
+
+<!-- Incoming bot call -->
+<div class="overlay call" id="callOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="callTitle">
+  <div class="call-inner">
+    <div class="call-top">
+      <div class="call-avatar"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 7v8c0 7.5 5.1 13.2 12 15 6.9-1.8 12-7.5 12-15V7L16 2Z" fill="currentColor"/></svg></div>
+      <div class="call-title" id="callTitle">Guardian bot</div>
+      <div class="call-sub" id="callSub">Incoming call · attempt 1 of 3</div>
+      <div class="call-reason" id="callReason"></div>
+    </div>
+    <div class="convo" id="convo" hidden></div>
+    <div class="call-actions" id="ringActions">
+      <button class="round decline" id="declineCall" type="button" aria-label="Decline">✕</button>
+      <button class="round accept" id="acceptCall" type="button" aria-label="Answer">✆</button>
+    </div>
+    <div class="answer-area" id="answerArea" hidden></div>
+  </div>
+</div>
+
+<!-- Face check -->
+<div class="overlay face" id="faceOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="faceTitle">
+  <div class="face-inner">
+    <h2 class="face-title" id="faceTitle">Face check</h2>
+    <p class="face-sub" id="faceSub">Look at the camera.</p>
+    <div class="cam"><video id="faceVideo" playsinline muted></video><img id="facePhoto" alt="" hidden><div class="cam-ring" id="faceRing"></div></div>
+    <div class="face-msg" id="faceMsg" aria-live="polite"></div>
+    <div class="row center" id="faceActions">
+      <label class="btn file-btn" id="facePhotoBtn" hidden>Take a selfie<input type="file" id="facePhotoInput" accept="image/*" capture="user"></label>
+      <button class="btn ghost" id="faceCancel" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Emergency lock -->
+<div class="overlay sos-lock" id="sosOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="sosTitle">
+  <div class="sos-inner">
+    <div class="sos-head">
+      <span class="sos-live">● EMERGENCY</span>
+      <h2 id="sosTitle">Help has been alerted</h2>
+      <p id="sosWhy"></p>
+    </div>
+    <div class="cam big"><video id="sosVideo" playsinline muted></video><img id="sosPhoto" alt="" hidden><div class="cam-ring" id="sosRing"></div></div>
+    <div class="unlock">
+      <div class="req" id="reqFace"><span class="tick"></span>Your face is recognised</div>
+      <div class="req" id="reqVoice"><span class="tick"></span>You say “I am safe now”</div>
+    </div>
+    <div class="sos-fallback">
+      <label class="btn sm file-btn" id="sosPhotoBtn" hidden>Take a selfie<input type="file" id="sosPhotoInput" accept="image/*" capture="user"></label>
+      <div class="type-phrase" id="typePhrase" hidden>
+        <input id="phraseInput" type="text" placeholder="Type: I am safe now" aria-label="Type I am safe now">
+        <button class="btn sm" id="phraseBtn" type="button">Confirm</button>
+      </div>
+    </div>
+    <ul class="sos-sent" id="sosSent"></ul>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<!--BODY-END-->
+<script src="vendor/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
